@@ -6,6 +6,9 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -18,15 +21,6 @@ shopify_access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")  # Novo: token de acess
 email_from = os.getenv("EMAIL_FROM")
 email_to = os.getenv("EMAIL_TO")
 smtp_password = os.getenv("SMTP_PASSWORD")
-
-# Debug: verificar se as variáveis de ambiente estão sendo carregadas corretamente
-print(f'Shopify URL: {shopify_url}')
-print(f'Shopify API Key: {shopify_api_key}')
-print(f'Shopify Password: {shopify_password}')
-print(f'Shopify Access Token: {shopify_access_token}')
-print(f'Email From: {email_from}')
-print(f'Email To: {email_to}')
-print(f'SMTP Password: {smtp_password}')
 
 # Criar o header de autenticação usando token de acesso
 auth_header = {
@@ -66,7 +60,7 @@ def create_box(style, occasion):
 
     if not products:
         print('No products found for the given tags.')
-        return
+        return None
 
     box = {
         'products': products,  # Inclui todos os produtos filtrados
@@ -76,8 +70,7 @@ def create_box(style, occasion):
 
     print('Custom box created:', box)
     pdf_filename = create_pdf(box['products'])
-    send_email_with_pdf(pdf_filename)
-    return box
+    return pdf_filename
 
 def create_pdf(products):
     pdf = FPDF()
@@ -110,12 +103,22 @@ def create_pdf(products):
     print("PDF created successfully!")
     return pdf_filename
 
-def send_email_with_pdf(pdf_filename):
-    corpo_email = """
+def send_email_with_pdf(pdf_filename, form_data):
+    corpo_email = f"""
     Olá,
-    
+
     Por favor, encontre em anexo o PDF da caixa de produtos.
-    
+
+    Informações do Formulário:
+    Nome: {form_data['nome']}
+    Telefone com DDD: {form_data['telefone_ddd']}
+    Email: {form_data['email']}
+    Tamanho de Roupas: {form_data['tamanho_roupas']}
+    Tamanho de Pijamas: {form_data['tamanho_pijamas']}
+    CEP: {form_data['cep']}
+    Número: {form_data['numero']}
+    Número da Unidade: {form_data['numero_unidade']}
+
     Atenciosamente,
     Sua Empresa
     """
@@ -139,4 +142,16 @@ def send_email_with_pdf(pdf_filename):
     
     print('Email enviado')
 
+@app.route('/submit_form', methods=['POST'])
+def submit_form():
+    form_data = request.json
+    pdf_filename = create_box(form_data['estilos_preferidos'], form_data['ocasioes'])
+    if pdf_filename:
+        send_email_with_pdf(pdf_filename, form_data)
+        return jsonify({"message": "Formulário processado com sucesso e email enviado."}), 200
+    else:
+        return jsonify({"message": "Nenhum produto encontrado para os critérios fornecidos."}), 404
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
 
