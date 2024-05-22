@@ -15,21 +15,10 @@ load_dotenv()
 
 # Obter variáveis de ambiente
 shopify_url = os.getenv("SHOPIFY_URL")
-shopify_api_key = os.getenv("SHOPIFY_API_KEY")
-shopify_password = os.getenv("SHOPIFY_PASSWORD")
-shopify_access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")  # Novo: token de acesso
+shopify_access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")
 email_from = os.getenv("EMAIL_FROM")
 email_to = os.getenv("EMAIL_TO")
 smtp_password = os.getenv("SMTP_PASSWORD")
-
-# Debug: verificar se as variáveis de ambiente estão sendo carregadas corretamente
-print(f'Shopify URL: {shopify_url}')
-print(f'Shopify API Key: {shopify_api_key}')
-print(f'Shopify Password: {shopify_password}')
-print(f'Shopify Access Token: {shopify_access_token}')
-print(f'Email From: {email_from}')
-print(f'Email To: {email_to}')
-print(f'SMTP Password: {smtp_password}')
 
 # Criar o header de autenticação usando token de acesso
 auth_header = {
@@ -47,9 +36,8 @@ def get_all_products():
             response.raise_for_status()
             data = response.json()
             products.extend(data.get('products', []))
-            # Pega o link para a próxima página
             url = response.links.get('next', {}).get('url')
-            params = {}  # Limpa os params após a primeira solicitação
+            params = {}
         return products
     except requests.exceptions.RequestException as e:
         print(f'Error fetching products: {e}')
@@ -72,7 +60,7 @@ def create_box(style, occasion):
         return None
 
     box = {
-        'products': products,  # Inclui todos os produtos filtrados
+        'products': products,
         'style': style,
         'occasion': occasion,
     }
