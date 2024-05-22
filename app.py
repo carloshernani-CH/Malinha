@@ -22,6 +22,15 @@ email_from = os.getenv("EMAIL_FROM")
 email_to = os.getenv("EMAIL_TO")
 smtp_password = os.getenv("SMTP_PASSWORD")
 
+# Debug: verificar se as variáveis de ambiente estão sendo carregadas corretamente
+print(f'Shopify URL: {shopify_url}')
+print(f'Shopify API Key: {shopify_api_key}')
+print(f'Shopify Password: {shopify_password}')
+print(f'Shopify Access Token: {shopify_access_token}')
+print(f'Email From: {email_from}')
+print(f'Email To: {email_to}')
+print(f'SMTP Password: {smtp_password}')
+
 # Criar o header de autenticação usando token de acesso
 auth_header = {
     'Content-Type': 'application/json',
@@ -144,14 +153,20 @@ def send_email_with_pdf(pdf_filename, form_data):
 
 @app.route('/submit_form', methods=['POST'])
 def submit_form():
-    form_data = request.json
-    pdf_filename = create_box(form_data['estilos_preferidos'], form_data['ocasioes'])
-    if pdf_filename:
-        send_email_with_pdf(pdf_filename, form_data)
-        return jsonify({"message": "Formulário processado com sucesso e email enviado."}), 200
-    else:
-        return jsonify({"message": "Nenhum produto encontrado para os critérios fornecidos."}), 404
+    try:
+        form_data = request.json
+        print(f"Received form data: {form_data}")
+        
+        pdf_filename = create_box(form_data['estilos_preferidos'], form_data['ocasioes'])
+        
+        if pdf_filename:
+            send_email_with_pdf(pdf_filename, form_data)
+            return jsonify({"message": "Formulário processado com sucesso e email enviado."}), 200
+        else:
+            return jsonify({"message": "Nenhum produto encontrado para os critérios fornecidos."}), 404
+    except Exception as e:
+        print(f"Error processing form: {e}")
+        return jsonify({"message": "Ocorreu um erro ao processar o formulário."}), 500
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
-
