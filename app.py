@@ -47,7 +47,7 @@ def filter_products_by_tags(products, style, occasion):
     filtered_products = []
     for product in products:
         product_tags = set(product.get('tags', '').split(', '))
-        if 'Novidade' in product_tags and (style in product_tags or occasion in product_tags):
+        if 'Novidade' in product_tags and (style in product_tags or occasion in product_tags): #caso seja para colocar todos produtos mexer aqui
             filtered_products.append(product)
     return filtered_products
 
@@ -104,7 +104,7 @@ def send_email_with_pdf(pdf_filename, form_data):
     corpo_email = f"""
     Olá,
 
-    Por favor, encontre em anexo o PDF da caixa de produtos.
+    Por favor, encontre em anexo o PDF da Malinha.
 
     Informações do Formulário:
     Nome: {form_data['nome']}
@@ -116,12 +116,10 @@ def send_email_with_pdf(pdf_filename, form_data):
     Número: {form_data['numero']}
     Número da Unidade: {form_data['numero_unidade']}
 
-    Atenciosamente,
-    Sua Empresa
     """
 
     msg = MIMEMultipart()
-    msg['Subject'] = "PDF da Caixa de Produtos"
+    msg['Subject'] = "Nova malinha"
     msg['From'] = email_from
     msg['To'] = email_to
 
