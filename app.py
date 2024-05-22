@@ -139,7 +139,4 @@ def send_email_with_pdf(pdf_filename):
     
     print('Email enviado')
 
-if __name__ == '__main__':
-    style = 'Blusas'
-    occasion = 'Saias'
-    create_box(style, occasion)
+
