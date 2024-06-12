@@ -6,19 +6,27 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
 # Obter variáveis de ambiente
 shopify_url = os.getenv("SHOPIFY_URL")
-shopify_access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")
+shopify_api_key = os.getenv("SHOPIFY_API_KEY")
+shopify_password = os.getenv("SHOPIFY_PASSWORD")
+shopify_access_token = os.getenv("SHOPIFY_ACCESS_TOKEN")  # Novo: token de acesso
 email_from = os.getenv("EMAIL_FROM")
 email_to = os.getenv("EMAIL_TO")
 smtp_password = os.getenv("SMTP_PASSWORD")
+
+# Debug: verificar se as variáveis de ambiente estão sendo carregadas corretamente
+print(f'Shopify URL: {shopify_url}')
+print(f'Shopify API Key: {shopify_api_key}')
+print(f'Shopify Password: {shopify_password}')
+print(f'Shopify Access Token: {shopify_access_token}')
+print(f'Email From: {email_from}')
+print(f'Email To: {email_to}')
+print(f'SMTP Password: {smtp_password}')
 
 # Criar o header de autenticação usando token de acesso
 auth_header = {
@@ -36,38 +44,40 @@ def get_all_products():
             response.raise_for_status()
             data = response.json()
             products.extend(data.get('products', []))
+            # Pega o link para a próxima página
             url = response.links.get('next', {}).get('url')
-            params = {}
+            params = {}  # Limpa os params após a primeira solicitação
         return products
     except requests.exceptions.RequestException as e:
         print(f'Error fetching products: {e}')
         return []
 
-def filter_products_by_tags(products, style, occasion):
+def filter_products_by_tags(products, styles, occasions):
     filtered_products = []
     for product in products:
         product_tags = set(product.get('tags', '').split(', '))
-        if 'Novidade' in product_tags and (style in product_tags or occasion in product_tags): #caso seja para colocar todos produtos mexer aqui
+        if 'Novidade' in product_tags and (product_tags.intersection(styles) and product_tags.intersection(occasions)):
             filtered_products.append(product)
     return filtered_products
 
-def create_box(style, occasion):
+def create_box(styles, occasions):
     all_products = get_all_products()
-    products = filter_products_by_tags(all_products, style, occasion)
+    products = filter_products_by_tags(all_products, styles, occasions)
 
     if not products:
         print('No products found for the given tags.')
-        return None
+        return
 
     box = {
-        'products': products,
-        'style': style,
-        'occasion': occasion,
+        'products': products,  # Inclui todos os produtos filtrados
+        'styles': styles,
+        'occasions': occasions,
     }
 
     print('Custom box created:', box)
     pdf_filename = create_pdf(box['products'])
-    return pdf_filename
+    send_email_with_pdf(pdf_filename)
+    return box
 
 def create_pdf(products):
     pdf = FPDF()
@@ -100,26 +110,18 @@ def create_pdf(products):
     print("PDF created successfully!")
     return pdf_filename
 
-def send_email_with_pdf(pdf_filename, form_data):
-    corpo_email = f"""
+def send_email_with_pdf(pdf_filename):
+    corpo_email = """
     Olá,
-
-    Por favor, encontre em anexo o PDF da Malinha.
-
-    Informações do Formulário:
-    Nome: {form_data['nome']}
-    Telefone com DDD: {form_data['telefone_ddd']}
-    Email: {form_data['email']}
-    Tamanho de Roupas: {form_data['tamanho_roupas']}
-    Tamanho de Pijamas: {form_data['tamanho_pijamas']}
-    CEP: {form_data['cep']}
-    Número: {form_data['numero']}
-    Número da Unidade: {form_data['numero_unidade']}
-
+    
+    Por favor, encontre em anexo o PDF da caixa de produtos.
+    
+    Atenciosamente,
+    Sua Empresa
     """
 
     msg = MIMEMultipart()
-    msg['Subject'] = "Nova malinha"
+    msg['Subject'] = "PDF da Caixa de Produtos"
     msg['From'] = email_from
     msg['To'] = email_to
 
@@ -136,23 +138,3 @@ def send_email_with_pdf(pdf_filename, form_data):
         server.sendmail(email_from, email_to, msg.as_string())
     
     print('Email enviado')
-
-@app.route('/submit_form', methods=['POST'])
-def submit_form():
-    try:
-        form_data = request.json
-        print(f"Received form data: {form_data}")
-        
-        pdf_filename = create_box(form_data['estilos_preferidos'], form_data['ocasioes'])
-        
-        if pdf_filename:
-            send_email_with_pdf(pdf_filename, form_data)
-            return jsonify({"message": "Formulário processado com sucesso e email enviado."}), 200
-        else:
-            return jsonify({"message": "Nenhum produto encontrado para os critérios fornecidos."}), 404
-    except Exception as e:
-        print(f"Error processing form: {e}")
-        return jsonify({"message": "Ocorreu um erro ao processar o formulário."}), 500
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
