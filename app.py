@@ -52,17 +52,17 @@ def get_all_products():
         print(f'Error fetching products: {e}')
         return []
 
-def filter_products_by_tags(products, styles, occasions):
+def filter_products_by_tags(products, style, occasion):
     filtered_products = []
     for product in products:
         product_tags = set(product.get('tags', '').split(', '))
-        if 'Novidade' in product_tags and (product_tags.intersection(styles) and product_tags.intersection(occasions)):
+        if 'Novidade' in product_tags and (style in product_tags and occasion in product_tags):
             filtered_products.append(product)
     return filtered_products
 
-def create_box(styles, occasions):
+def create_box(style, occasion):
     all_products = get_all_products()
-    products = filter_products_by_tags(all_products, styles, occasions)
+    products = filter_products_by_tags(all_products, style, occasion)
 
     if not products:
         print('No products found for the given tags.')
@@ -70,8 +70,8 @@ def create_box(styles, occasions):
 
     box = {
         'products': products,  # Inclui todos os produtos filtrados
-        'styles': styles,
-        'occasions': occasions,
+        'style': style,
+        'occasion': occasion,
     }
 
     print('Custom box created:', box)
@@ -152,4 +152,9 @@ def send_email_with_pdf(pdf_filename):
     
     print('Email enviado')
 
+# Exemplo de chamada da função com strings de estilo e ocasião
+style = 'Casual'
+occasion = 'Verão'
+
+create_box(style, occasion)
 
