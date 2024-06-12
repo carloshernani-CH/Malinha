@@ -87,14 +87,26 @@ def create_pdf(products):
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt="Product Box", ln=True, align='C')
 
+    # Títulos das colunas
+    pdf.ln(10)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(40, 10, "Product", 1)
+    pdf.cell(30, 10, "Variant", 1)
+    pdf.cell(30, 10, "Size", 1)
+    pdf.cell(30, 10, "Color", 1)
+    pdf.cell(30, 10, "Price", 1)
+    pdf.ln()
+
+    # Dados dos produtos
     for product in products:
-        pdf.ln(10)
         pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Product: {product['title']}", ln=True, align='L')
-        
         for variant in product['variants']:
-            pdf.set_font("Arial", size=10)
-            pdf.cell(200, 10, txt=f"Size: {variant['option1']}, Color: {variant['option2']}", ln=True, align='L')
+            pdf.cell(40, 10, product['title'], 1)
+            pdf.cell(30, 10, variant['title'], 1)
+            pdf.cell(30, 10, variant['option1'] or '', 1)
+            pdf.cell(30, 10, variant['option2'] or '', 1)
+            pdf.cell(30, 10, f"${variant['price']}", 1)
+            pdf.ln()
 
         if 'image' in product and product['image']:
             image_url = product['image']['src']
@@ -104,6 +116,7 @@ def create_pdf(products):
                 file.write(response.content)
             pdf.image(image_file, x=10, y=None, w=100)
             os.remove(image_file)
+            pdf.ln(10)
 
     pdf_filename = "product_box.pdf"
     pdf.output(pdf_filename)
@@ -138,3 +151,5 @@ def send_email_with_pdf(pdf_filename):
         server.sendmail(email_from, email_to, msg.as_string())
     
     print('Email enviado')
+
+
